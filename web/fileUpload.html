@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>File Upload</title>
+    <link rel="stylesheet" type="text/css" href="vendor/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+	<style type="text/css">
+	</style>
+</head>
+<body>
+<div class="container">
+	<!-- <div class="row" style="height: 1em;"></div> -->
+	<div class="row" style="text-align: center;">
+		<h1>导入图片学习</h1>
+	</div>
+	<div class="col-sm-offset-4 col-sm-4">
+
+        <div class="row">
+            <div class="input-group">
+                <span id="connState" class="form-control">正在连接 ws://192.168.0.1:9000</span>
+                <span class="input-group-btn">
+                    <button id="reconnect" class="btn btn-primary" disabled>重连</button>
+                </span>
+            </div>
+        </div><!-- 
+        <div class="row">
+            <span id="connState" class="col-sm-7">正在连接 ws://192.168.0.1:9000</span>
+            <button id="reconnect" class="btn btn-primary" disabled>重连</button>
+        </div> --><hr>
+
+        <div class="row">
+
+            <div class="row">
+                <span >
+                    <div class="input-group">
+                        <span class="input-group-addon">ID：</span>
+                        <input id="personID" type="text" class="form-control" placeholder="ID"/>
+                    </div>
+                </span>
+            </div><br>
+
+            <div class="row">
+                <span >
+                    <div class="input-group">
+                        <span class="input-group-addon">名字：</span>
+                        <input id="personName" type="text" class="form-control" placeholder="名字"/>
+                    </div>
+                </span>
+            </div><br>
+
+	        <div class="row">
+	        	<span >
+		        	<div class="input-group">
+			        	<input id="files" type="file" class="form-control" accept="image/jpg, image/jpeg, image/png, image/bmp" multiple>
+			        	<span class="input-group-btn">
+			        		<button id="submit" class="btn btn-primary">提交</button>
+			        	</span>
+		        	</div>
+	        	</span>
+	        	
+	        </div><br>
+
+			<div class="row">
+				<span >
+					<div class="input-group">
+			        	<span class="input-group-addon">进度：</span>
+			        	<span class="form-control">
+			        		<progress id="progress" style="width: 100%; height: 1.8em;" value="0" max="0"></progress>
+			        	</span>
+					</div>
+				</span>
+	        	<!-- <span class="col-sm-1"></span> -->
+	        	<!-- <button id="cancel" class="btn btn-danger">取消读取文件</button> -->
+	        </div>
+
+	        <div>
+	        	<span id="uploadState"></span>
+	        </div>
+	    </div>
+	</div>
+<!-- 
+    名字：<input type="text" id="personName" placeholder="名字"/>
+    <br>
+    ID<pre>  </pre>：<input type="text" id="personID" placeholder="ID"/>
+	<br><br> -->
+</div>
+</body>
+<script src="vendor/js/jquery.min.js"></script>
+<script src="vendor/js/bootstrap.min.js"></script>
+<script src="js/fileUploadUtil.js"></script>
+<script type="text/javascript">
+// let rawParam = window.location.search;
+// let identity = rawParam.substring(rawParam.indexOf('?identity=') + '?identity='.length, rawParam.length);
+// $('#personID').val(identity);
+
+let loadedSize = 0;
+let totalSize = 0;
+let fr = createFileReader();
+
+let host = localStorage.getItem('ip');
+let port = 9000;
+let socket = createWebSocket(host, port);
+
+$('button').prop('disabled', true);
+$('#cancel').click(function () {
+	if (fr.readyState === fr.LOADING) {
+		fr.abort();
+	}
+	// if(socket.readyState === socket.OPEN) {
+ //        socket.close();
+ //    }
+});
+$('input[type="file"]').click(function () {
+	// $('#progress').attr('value', 0);
+	$('#uploadState').text('');
+});
+$('#reconnect').click(function () {
+	socket = createWebSocket(host, port);
+	this.disabled = true;
+});
+$('#submit').click(function () {
+    if (!validateNameId($('#personName').val(), $('#personID').val())) {
+        alert('名字或ID不合法！');
+        return;
+    }
+
+    let fs = $('#files').prop('files');
+
+    if (fs.length < 15) {
+        alert('图片张数不足！请至少选择15张不同的照片！');
+        return;
+    }
+
+	loadedSize = 0;
+	totalSize = 0;
+	// console.log(fs)
+	for (let i = 0; i < fs.length; i++) {
+		totalSize += fs[i].size;
+		// console.log(fs[i])
+		fs[i].type = '';
+		read(fr, fs[i]);
+	}
+	$('#progress').attr('value', loadedSize)
+		.attr('max', totalSize);
+	$('#uploadState').text('正在读取文件...');
+	// this.disabled = true;
+});
+</script>
+</html>

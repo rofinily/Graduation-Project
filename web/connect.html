@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Connnect WebSocket Server</title>
+	<link rel="stylesheet" type="text/css" href="vendor/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="css/main.css">
+	<style type="text/css">
+
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="row" style="text-align: center;">
+			<h1>基于ROS的人脸检测与识别系统</h1>
+		</div>
+
+		<div class="row" style="height: 5em;"></div>
+
+		<div class="row" style="text-align: center;">
+			<span><b>连接至摄像头节点</b></span>
+		</div>
+		<hr>
+
+		<div class="row">
+			<div class="col-sm-offset-4 col-sm-4 input-group">
+				<span class="input-group-addon">节点IP：</span>
+				<input id="ip" class="form-control" type="text">
+				<span class="input-group-btn">
+					<button id="connect" class="btn btn-primary">连接</button>
+				</span>
+			</div>
+		</div>
+
+	</div>
+</body>
+<script src="vendor/js/jquery.min.js"></script>
+<script src="vendor/js/bootstrap.min.js"></script>
+<script>
+	let ip = localStorage.getItem('ip');
+	if (ip != null) {
+		$('#ip').val(ip);
+	}
+
+	$('#connect').click(function () {
+		let ip = $('#ip').val();
+
+		if (validateIP(ip)) {
+			localStorage.setItem('ip', ip);
+			window.location = 'index.html';
+		} else {
+			alert('IP格式不正确')
+		}
+	});
+
+	function validateIP(ip) {
+		if (!/^(\d{1,3}\.){3,3}\d{1,3}$/.test(ip)) {
+			return false;
+		}
+		let ipSlice = ip.split('.');
+		for (let idx in ipSlice) {
+			let ipByte = parseInt(ipSlice[idx]);
+			if (ipByte < 0 || ipByte > 255) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+</script>
+
+</html>

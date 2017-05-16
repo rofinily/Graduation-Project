@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Index</title>
+    <link rel="stylesheet" type="text/css" href="vendor/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <style type="text/css">
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="row" style="height: 1em"></div>
+    <div class="row">
+        <div class="col-sm-7">
+            <div class="row" style="padding-bottom: 1em; margin-bottom: 1em; border-bottom: solid 1px #607D8B;">
+                <div style="position: relative; width: 640px; height: 480px">
+                    <img id="faceImg" src="" alt="摄像头图像" width="100%" height="100%"/>
+                    <canvas id="faceCanvas" style="position: absolute; left: 0px; top: 0px;" width="640px" height="480px"></canvas>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-6 input-group">
+                    <span id="connState" class="form-control">正在连接 ws://192.168.0.1:9000</span>
+                    <span class="input-group-btn">
+                        <button id="reconnect" class="btn btn-primary" disabled>重连</button>
+                    </span>
+                </div>
+            </div>
+            <div style="height: 1ex;"></div>
+
+            <div class="row">
+                <div class="col-sm-6 input-group">
+                    <span class="input-group-addon">FPS : <span id="curFPS">1</span>x0.5倍</span>
+                    <span>
+                        <input id="fpsScale" type="range" class="form-control" style="border:0 solid #ccc; display: inherits; width: 100%;">
+                    </span>
+                    <span class="input-group-addon">x1.5倍</span>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-sm-5" style="padding-left: 1em; border-left: solid 1px #607D8B;">
+            <div id="detectAndRecognizeZone">
+                <button id="detect" class="btn btn-primary">人脸检测</button>
+                <button id="recognize" class="btn btn-primary">人脸识别</button>
+                <button class="btn btn-danger" onclick="doNothing()">停止</button>
+            </div>
+            <hr>
+            
+            <div id="trainZone">
+                <div>
+                    <div class="row" hidden="hidden">
+                        <span class="col-sm-2">ID：</span>
+                        <span class="col-sm-6">
+                            <input id="personID" type="text" class="form-control" readonly placeholder="ID"/>
+                        </span>
+                    </div>
+
+                    <div class="row">
+                        <span class="col-sm-8">
+                            <div class="input-group">
+                                <span class="input-group-addon">名字：</span>
+                                <input id="personName" type="text" class="form-control" placeholder="名字"/>
+                            </div>
+                        </span>
+                    </div>
+
+                    <!-- <div class="row">
+                        <span class="col-sm-3">已学习：</span>
+                        <span class="col-sm-6">
+                            <select id="persons" style="width: 100%;"></select>
+                        </span>
+                            <option value="1">anchore</option>
+                            <option value="2">syrena</option>
+                        <span class="col-sm-1"></span>
+                        <button id="updatePersons" class="btn btn-primary">刷新</button>
+                    </div> -->
+                </div><br>
+
+                <div class="row">
+                    <span class="col-sm-8">
+                        <!-- <div class="input-group" hidden="hidden">
+                            <span class="input-group-addon">
+                                <input id="trainFlag" style="zoom: 1.4;" type="checkbox"/>
+                            </span>
+                            <span class="form-control" >开始人脸学习</span>
+                        </div> -->
+                        <div class="btn-group">
+                            <button id="newTrain" class="btn btn-primary">开始人脸学习</button>
+                            <button id="stopNewTrain" class="btn btn-danger">停止</button>
+                        </div>
+                    </span>
+                </div>
+            </div>
+            <hr>
+
+            <div>
+                <a id="uploadImg" class="btn btn-success" href="fileUpload.html" target="_blank">导入图片学习</a>
+            </div>
+            <hr>
+
+            <div class="row" style="margin-bottom: 1ex;">
+                <span class="col-sm-3">已学习的人脸</span>
+                <button id="updatePersons" class="btn btn-primary">刷新</button>
+            </div>
+            <div id="trainedZone" style="height: 20em; overflow: auto;">
+                <span class="row">
+                    <table id="personsTable" class="table table-striped table-bordered table-hover table-condensed">
+                        <thead>
+                            <tr><th>ID</th><th>名字</th><th>操作</th></tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script src="vendor/js/jquery.min.js"></script>
+<script src="vendor/js/bootstrap.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/util.js"></script>
+<script>
+let host = localStorage.getItem('ip');
+let port = 9000;
+let socket = decorateSocket(createWebSocket(host, port));
+let imageSocket = decorateImageSocket(createWebSocket(host, 9001));
+
+const MSG = {
+    'NOTHING': {
+        'cmd': 'nothing',
+        'interval': 1000
+    },
+    'RAW': {
+        'cmd': 'raw',
+        'interval': 50
+    },
+    'DETECT': {
+        'cmd': 'detect',
+        'interval': 1000
+    },
+    'TRAIN': {
+        'cmd': 'train',
+        'name': null,
+        'identity': null,
+        'interval': 1000
+    },
+    'STOP_TRAIN': {
+        'cmd': 'stopTrain',
+        'interval': 1000
+    },
+    'RECOGNIZE': {
+        'cmd': 'recognize',
+        'interval': 1000
+    },
+    'GET_PERSONS': {
+        'cmd': 'getPersons',
+        'interval': 500
+    },
+    'DEL_PERSON': {
+        'cmd': 'delPerson',
+        'identity': null,
+        'interval': 500
+    }
+};
+
+let msg = MSG.NOTHING;
+let fpsScale = 50;
+
+let imgWidth = 640;
+let imgHeight = 480;
+let imgScale = imgWidth / 320;
+let canvasCtx = createCanvasCtx();
+
+// $('#trainFlag').prop('checked', false);
+
+$('button').click(function () {
+    showCurFPS();
+});
+
+$('#detect').click(function () {
+    detect();
+});
+
+// $('#trainFlag').change(function () {
+//     train(this.checked);
+//     $('input[type="text"], button[id!="reconnect"]').prop('disabled', this.checked); 
+// });
+
+$('#newTrain').click(function () {
+    let identity = $('#personID').val();
+    let name = $('#personName').val();
+    train(identity, name);
+    // $('input, button').each(function () {
+    //     if (this.type === 'text' ||
+    //         (this.id != 'reconnect' && this.id != 'stopNewTrain')) {
+    //         this.disabled = true;
+    //     }
+    // });
+});
+$('#stopNewTrain').click(function () {
+    stopTrain();
+    // $('input, button').each(function () {
+    //     if (this.type === 'text' ||
+    //         (this.id != 'reconnect' && this.id != 'stopNewTrain')) {
+    //         this.disabled = false;
+    //     }
+    // }); 
+});
+
+// $(console.log($('button[name=retrain]')));
+// $('button[name=retrain]').click(function () {
+//     let ctx = this;
+//     $('button').each(function () {
+//         if (this.id != 'reconnect' && this != ctx) {
+//             this.disabled = true;
+//         }
+//     });
+// });
+// $('button[name=stopRetrain]').click(function () {
+//     let ctx = this;
+//     $('button').each(function () {
+//         if (this.id != 'reconnect' && this != ctx) {
+//             this.disabled = false;
+//         }
+//     });
+// });
+
+// $('#persons').click(function () {
+//     onPersonClick(this.value);
+// });
+
+$('#recognize').click(function () {
+    recognize();
+});
+
+// $('#nothing').click(function () {
+//     nothing();
+// });
+
+$('#reconnect').click(function () {
+    socket = createWebSocket(host, port);
+    this.disabled = true;
+});
+$('#fpsScale').change(function () {
+    fpsScale = this.value;
+});
+$('#updatePersons').click(function () {
+    requestOnce(socket, MSG.GET_PERSONS);
+});
+$('#uploadImg').click(function () {
+    msg = MSG.NOTHING;
+    // this.href = "fileUpload.html?identity=" + $('#personID').val();
+});
+</script>
+</html>
