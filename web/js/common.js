@@ -75,7 +75,7 @@ String.prototype.format = function () {
 			throw Error('index can only be integer greater than 0, got {} in position {}'.format(match, position));
 		}
 
-		//·{integer}·的情况
+		//`{integer}`的情况
 		let idx = parseInt(match);
 		if (idx > placeholders.length - 1) {
 			throw Error('out of placeholders range, got {} out of {}'.format(idx, placeholders.length - 1));
