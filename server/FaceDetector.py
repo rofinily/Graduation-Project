@@ -5,6 +5,8 @@ import rospy
 from sensor_msgs.msg import CompressedImage
 import comm
 
+align = comm.align
+
 def faceDetect():
     rospy.init_node('faceDetector', anonymous=True)
     rospy.Subscriber("imgTransporter", CompressedImage, callback, queue_size=1, buff_size=imgSize)
@@ -78,8 +80,6 @@ def markAllFacesByOpenCV(img):
 if __name__ == '__main__':
     fps = comm.FPS
     imgSize = comm.IMG_SIZE
-
-    align = comm.align
     #detector = dlib.get_frontal_face_detector()
     #haar = cv2.CascadeClassifier( \
     #    '/usr/share/opencv/haarcascades/haarcascade_frontalface_default.xml')
