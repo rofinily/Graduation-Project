@@ -1,3 +1,4 @@
 vendor
 /test.py
 /web/test.html
+/server/WebSocketClient.py
