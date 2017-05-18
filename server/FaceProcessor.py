@@ -19,6 +19,8 @@ net = comm.net
 images = {}
 persons = {}
 
+name = args.name
+identity = args.identity
 pklpath = args.pklpath
 
 def faceProcess():
@@ -80,9 +82,6 @@ def saveData():
 if __name__ == '__main__':
     fps = comm.FPS
     imgSize = comm.IMG_SIZE
-
-    name = args.name
-    identity = args.identity
 
     try:
         initData()
