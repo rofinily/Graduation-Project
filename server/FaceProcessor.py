@@ -19,6 +19,8 @@ net = comm.net
 images = {}
 persons = {}
 
+pklpath = args.pklpath
+
 def faceProcess():
     rospy.init_node('faceProcessor', anonymous=True)
     rospy.Subscriber("imgTransporter", CompressedImage, callback, queue_size=1, buff_size=imgSize)
@@ -81,7 +83,6 @@ if __name__ == '__main__':
 
     name = args.name
     identity = args.identity
-    pklpath = args.pklpath
 
     try:
         initData()

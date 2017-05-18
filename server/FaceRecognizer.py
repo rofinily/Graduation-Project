@@ -178,15 +178,15 @@ args = parser.parse_args()
 align = comm.align
 net = comm.net
 
+pklpath = args.pklpath
+classifier = args.classifier
+ldaDim = args.ldaDim
+
 le, clf = None, None
 
 if __name__ == '__main__':
     fps = comm.FPS
     imgSize = comm.IMG_SIZE
-
-    pklpath = args.pklpath
-    classifier = args.classifier
-    ldaDim = args.ldaDim
 
     with open(pklpath, 'rb') as f:
         persons = pickle.load(f)
