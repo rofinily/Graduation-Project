@@ -12,12 +12,12 @@ net = openface.TorchNeuralNet(
     imgDim=96,
     cuda=False)
 
-def string2NpImg(string):
+def bytes2NpImg(string):
     npArr = np.fromstring(string, np.uint8)
     npImg = cv2.imdecode(npArr, cv2.CV_LOAD_IMAGE_COLOR)
     return npImg
 
-def npImg2String(npImg):
+def npImg2Bytes(npImg):
     return np.array(cv2.imencode('.jpg', npImg)[1]).tostring()
 
 if __name__ == '__main__':

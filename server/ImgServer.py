@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import sys, json, argparse
 import txaio
-txaio.use_twisted()
 from autobahn.twisted.websocket import WebSocketServerProtocol, \
     WebSocketServerFactory
 from twisted.python import log
@@ -25,7 +24,7 @@ class MyServerProtocol(WebSocketServerProtocol):
         pass
 
     def onConnect(self, request):
-        print("Client connecting: {0}".format(request.peer))
+        print("Client connecting: {}".format(request.peer))
 
     def onOpen(self):
         print("WebSocket connection open.")
@@ -46,7 +45,7 @@ class MyServerProtocol(WebSocketServerProtocol):
         print("WebSocket connection closed: {}".format(reason))
 
 if __name__ == '__main__':
-
+    txaio.use_twisted()
     log.startLogging(sys.stdout)
 
     port = args.port

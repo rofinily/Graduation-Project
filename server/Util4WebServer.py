@@ -56,9 +56,9 @@ def rawFace():
     #     with open('tmpImg1', 'wb') as f:
     #         f.write(tmpImg)
 
-    # npImg = comm.string2NpImg(tmpImg)
+    # npImg = comm.bytes2NpImg(tmpImg)
     with open('tmpImg', 'rb') as f:
-        npImg = comm.string2NpImg(f.read())
+        npImg = comm.bytes2NpImg(f.read())
 
     if npImg is None:
         return MSG['EMPTY']
@@ -66,7 +66,7 @@ def rawFace():
     npImg = scaledImg(npImg)
 
     content = 'data:image/jpg;base64,' + \
-        base64.b64encode(comm.npImg2String(npImg))
+        base64.b64encode(comm.npImg2Bytes(npImg))
 
     msg = MSG['PROCEEDED']
     msg['detail'] = 'rawImg'
@@ -75,7 +75,7 @@ def rawFace():
 
 def detectFace():
     with open('tmpImg', 'rb') as f:
-        npImg = comm.string2NpImg(f.read())
+        npImg = comm.bytes2NpImg(f.read())
 
     if npImg is None:
         return MSG['EMPTY']
@@ -100,7 +100,7 @@ def detectFace():
 
 def trainFace(name, identity):
     with open('tmpImg', 'rb') as f:
-        npImg = comm.string2NpImg(f.read())
+        npImg = comm.bytes2NpImg(f.read())
 
     if npImg is None:
         return MSG['EMPTY']
@@ -163,7 +163,7 @@ def recognizeFace():
         return MSG['EMPTY']
 
     with open('tmpImg', 'rb') as f:
-        npImg = comm.string2NpImg(f.read())
+        npImg = comm.bytes2NpImg(f.read())
 
     if npImg is None:
         return MSG['EMPTY']
@@ -220,7 +220,7 @@ def trainPic(j):
             continue
 
         deStr = base64.b64decode(content[len(imgHeader):])
-        npImg = comm.string2NpImg(deStr)
+        npImg = comm.bytes2NpImg(deStr)
 
 
         if identity not in FaceProcessor.persons:

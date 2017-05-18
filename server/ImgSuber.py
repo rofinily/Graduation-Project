@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import rospy, comm, numpy as np, cv2, fcntl
+import rospy, comm, base64 as b64
 from sensor_msgs.msg import CompressedImage
-import json, pickle
+import json
 from websocket import create_connection
 
 MSG = {
@@ -21,7 +21,7 @@ def subImg():
 
 def callback(rosData):
     msg = MSG['SET_TMP_IMG']
-    msg['content'] = unicode(rosData.data, errors='ignore')
+    msg['content'] = b64.b64encode(rosData.data)
     # print(rosData.data)
     ws.send(json.dumps(msg))
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     imgSize = comm.IMG_SIZE
     try:
-        ws = create_connection('ws://localhost:9000/')
+        ws = create_connection('ws://localhost:9001/')
         subImg()
     finally:
         ws.close()

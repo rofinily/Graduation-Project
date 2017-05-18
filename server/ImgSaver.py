@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import rospy, comm, numpy as np, cv2, fcntl
+import rospy, comm, numpy as np, fcntl
 from sensor_msgs.msg import CompressedImage
 
 def saveImg():

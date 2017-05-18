@@ -42,14 +42,14 @@ def scaledImg(img, scale=0.5):
 
 def rawFace():
     with open(tmpImgPath, 'rb') as f:
-        npImg = comm.string2NpImg(f.read())
+        npImg = comm.bytes2NpImg(f.read())
 
     if npImg is None:
         return MSG['EMPTY']
 
     npImg = scaledImg(npImg)
 
-    content = comm.npImg2String(npImg)
+    content = comm.npImg2Bytes(npImg)
 #    msg = {
 #        "type": "proceeded",
 #        'detail': 'rawImg',
@@ -62,7 +62,7 @@ def rawFace():
 
 def detectFace():
     with open(tmpImgPath, 'rb') as f:
-        npImg = comm.string2NpImg(f.read())
+        npImg = comm.bytes2NpImg(f.read())
 
     if npImg is None:
         return MSG['EMPTY']
@@ -70,7 +70,7 @@ def detectFace():
     npImg = scaledImg(npImg)
     hasFace = FaceDetector.markAllFacesByDlib(npImg)
 
-    content = comm.npImg2String(npImg)
+    content = comm.npImg2Bytes(npImg)
 #    msg = {
 #        "type": "proceeded",
 #        'detail': 'faceDetected' if hasFace else 'noFace',
@@ -83,7 +83,7 @@ def detectFace():
 
 def trainFace(name, identity):
     with open(tmpImgPath, 'rb') as f:
-        npImg = comm.string2NpImg(f.read())
+        npImg = comm.bytes2NpImg(f.read())
 
     if npImg is None:
         return MSG['EMPTY']
@@ -99,7 +99,7 @@ def trainFace(name, identity):
 
     bb = align.getLargestFaceBoundingBox(npImg)
     if bb is None:
-        content = comm.npImg2String(npImg)
+        content = comm.npImg2Bytes(npImg)
         msg = MSG['PROCEEDED']
         msg['detail'] = 'noFace'
         msg['content'] = content
@@ -124,7 +124,7 @@ def trainFace(name, identity):
             'rep' : rep
         }
 
-    content = comm.npImg2String(npImg)
+    content = comm.npImg2Bytes(npImg)
     msg = MSG['PROCEEDED']
     msg['detail'] = 'faceTrained'
     msg['content'] = content
@@ -168,7 +168,7 @@ def recognizeFace():
         return MSG['EMPTY']
 
     with open(tmpImgPath, 'rb') as f:
-        npImg = comm.string2NpImg(f.read())
+        npImg = comm.bytes2NpImg(f.read())
 
     if npImg is None:
         return MSG['EMPTY']
@@ -176,7 +176,7 @@ def recognizeFace():
     npImg = scaledImg(npImg)
     bb = align.getLargestFaceBoundingBox(npImg)
     if bb is None:
-        content = comm.npImg2String(npImg)
+        content = comm.npImg2Bytes(npImg)
         msg = MSG['PROCEEDED']
         msg['detail'] = 'noFace'
         msg['content'] = content
@@ -222,7 +222,7 @@ def recognizeFace():
         thickness=2
     )
 
-    content = comm.npImg2String(npImg)
+    content = comm.npImg2Bytes(npImg)
 #    msg = {
 #        "type": "proceeded",
 #        'detail': 'faceRecognized',
@@ -249,7 +249,7 @@ def trainPic(j):
             continue
 
         deStr = base64.b64decode(content[len(imgHeader):])
-        npImg = comm.string2NpImg(deStr)
+        npImg = comm.bytes2NpImg(deStr)
 
         npImg = scaledImg(npImg)
 
