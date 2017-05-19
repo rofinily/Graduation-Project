@@ -152,7 +152,8 @@ function delPerson(thiz, identity) {
 function fitPersonsTable(persons) {
     let tbody = $('#personsTable > tbody');
     $(tbody).empty();
-    for (let idx in persons) {
+
+    for (var idx in persons) {
         let template =
             '<tr>\
                 <td>{0}</td>\
@@ -170,7 +171,12 @@ function fitPersonsTable(persons) {
         $(tbody).append(tr);
     }
 
-    let nextId = parseInt(idx) + 1
+    if (idx === undefined) {
+        $('#personID').val(1);
+        return;
+    }
+
+    let nextId = parseInt(idx) + 1;
     $('#personID').val(nextId);
     // let uploadImgHref = $('a#uploadImg').attr('href');
     // let tmp = uploadImgHref.substring(0, uploadImgHref.indexOf('?identity=') + '?identity='.length);
