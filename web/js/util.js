@@ -113,6 +113,8 @@ function handleMsg(e) {
             box.left * imgScale,
             box.top * imgScale - 5
         );
+    } else {
+        clearCanvas();
     }
 }
 
@@ -313,7 +315,6 @@ function validateNameId(name, identity) {
 }
 
 function doNothing() {
-    setTimeout(clearCanvas, 1000);
     msg = MSG.NOTHING;
 }
 
