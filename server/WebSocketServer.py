@@ -43,9 +43,8 @@ class MyServerProtocol(WebSocketServerProtocol):
             print(j['cmd'])
         
         if j['cmd'] == 'nothing':
-            pass
-        # elif j['cmd'] == 'setTmpImg':
-        #     uws.tmpImg = j['content']
+            self.sendMessage(json.dumps(MSG['EMPTY']))
+            
         elif j['cmd'] == 'raw':
             msg = uws.rawFace()
             self.sendMessage(json.dumps(msg))
