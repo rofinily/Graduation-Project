@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse, imagehash, pickle, os
 from PIL import Image
-import numpy as np, cv2, dlib
+import numpy as np, cv2
 import rospy
 from sensor_msgs.msg import CompressedImage
 import openface
@@ -34,21 +34,21 @@ def callback(rosData):
     npArr = np.fromstring(rosData.data, np.uint8)
     npImg = cv2.imdecode(npArr, cv2.CV_LOAD_IMAGE_COLOR)
 
-    bb = align.getLargestFaceBoundingBox(npImg)
-    if bb is None:
+    box = align.getLargestFaceBoundingBox(npImg)
+    if box is None:
         print 'cannot find a face on frame {}'.format(rosData.header.frame_id)
         cv2.imshow('Face', npImg)
         cv2.waitKey(1000 // fps)
         return
-    p1 = (bb.left(), bb.top())
-    p2 = (bb.right(), bb.bottom())
+    p1 = (box.left(), box.top())
+    p2 = (box.right(), box.bottom())
     cv2.rectangle(npImg, p1, p2, (0, 255, 0), 3)
     cv2.imshow('Face', npImg)
     cv2.waitKey(1000 // fps)
 
-    alignedFace = align.align(96, npImg, bb,
+    alignedFace = align.align(96, npImg, box,
         landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
-    phash = str(imagehash.phash(Image.fromarray(alignedFace)))
+    phash = imagehash.phash(Image.fromarray(alignedFace))
     if phash not in images:
         rep = net.forward(alignedFace)
         images[phash] = {
@@ -79,6 +79,35 @@ def saveData():
         pickle.dump(images, f)
         print 'pkl file already written'
 
+def train(identity, name, npImg):
+    if npImg is None:
+        return None
+
+    if identity not in persons:
+        persons[identity] = name
+    elif persons[identity] != name:
+        persons[identity] = name
+
+    npImg = comm.scaledImg(npImg)
+    box = align.getLargestFaceBoundingBox(npImg)
+    if box is None:
+        return None
+
+    alignedFace = align.align(96, npImg, box,
+        landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
+    phash = imagehash.phash(Image.fromarray(alignedFace))
+    if phash not in images:
+        rep = net.forward(alignedFace)
+        images[phash] = {
+            'identity' : identity,
+            'rep' : rep
+        }
+
+    return box
+
+def getPersons():
+    return persons.copy()
+
 if __name__ == '__main__':
     fps = comm.FPS
     imgSize = comm.IMG_SIZE
@@ -88,3 +117,11 @@ if __name__ == '__main__':
         faceProcess()
     finally:
         saveData()
+
+def delPerson(identity):
+    if identity in persons:
+        persons.pop(identity)
+
+    for key in images.keys():
+        if images[key]['identity'] == identity:
+            images.pop(key)

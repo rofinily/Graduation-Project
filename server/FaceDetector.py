@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-import time
 import numpy as np, dlib, cv2
 import rospy
 from sensor_msgs.msg import CompressedImage
 import comm
-
-align = comm.align
 
 def faceDetect():
     rospy.init_node('faceDetector', anonymous=True)

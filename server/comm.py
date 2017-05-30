@@ -13,15 +13,22 @@ net = openface.TorchNeuralNet(
 	cuda=False
 )
 
-def bytes2NpImg(bytes):
-	if bytes is None:
+def bytes2NpImg(byteArray):
+	if byteArray is None:
 		return None
-	npArr = np.fromstring(bytes, np.uint8)
+	npArr = np.fromstring(byteArray, np.uint8)
 	npImg = cv2.imdecode(npArr, cv2.CV_LOAD_IMAGE_COLOR)
 	return npImg
 
 def npImg2Bytes(npImg):
 	return np.array(cv2.imencode('.jpg', npImg)[1]).tostring()
+
+def scaledImg(img, scale=0.5):
+    sp = img.shape
+    h, w = sp[0], sp[1]
+    h = int(round(h * scale, 0))
+    w = int(round(w * scale, 0))
+    return cv2.resize(img, (w, h))
 
 if __name__ == '__main__':
 	print 'comm'

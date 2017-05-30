@@ -1,18 +1,26 @@
 #!/usr/bin/env python
 import argparse, pickle, warnings
-import numpy as np, cv2, dlib
+import numpy as np, cv2
 import rospy
 from sensor_msgs.msg import CompressedImage
-from sklearn.pipeline import Pipeline
-from sklearn.lda import LDA
 from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import SVC
 from sklearn.grid_search import GridSearchCV
-from sklearn.mixture import GMM
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.naive_bayes import GaussianNB
 import openface
 import comm
+
+warnings.filterwarnings("ignore")
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--pklpath', type=str, default='/home/anchore/faces.pkl')
+args = parser.parse_args()
+
+align = comm.align
+net = comm.net
+
+pklpath = args.pklpath
+
+le, clf = None, None
 
 def getImages(path):
     with open(path, 'rb') as f:
@@ -24,7 +32,7 @@ def getImages(path):
         return imgs
 
 def getData():
-    imgs = getImages(pklpath)  # /home/anchore/faces.pkl
+    imgs = getImages(pklpath)
     if imgs is None:
         return None
     X = []
@@ -46,66 +54,71 @@ def train():
         return None
 
     (X, y) = d
-#        numIdentities = len(set(y + [-1]))
-#        if numIdentities <= 1:
-#            return
+    param_grid = [
+        {
+            'C': [1, 10, 100, 1000],
+            'kernel': ['linear']
+        },
+        {
+            'C': [1, 10, 100, 1000],
+            'gamma': [0.001, 0.0001],
+            'kernel': ['rbf']
+        }
+    ]
 
-    if classifier == 'LinearSvm':
-        clf = SVC(C=1, kernel='linear', probability=True)
-    elif classifier == 'GridSearchSvm':
-        '''
-Warning: In our experiences, using a grid search over SVM hyper-parameters only
-gives marginally better performance than a linear SVM with C=1 and
-is not worth the extra computations of performing a grid search.
-        '''
-        param_grid = [
-            {'C': [1, 10, 100, 1000],
-             'kernel': ['linear']},
-            {'C': [1, 10, 100, 1000],
-             'gamma': [0.001, 0.0001],
-             'kernel': ['rbf']}
-        ]
-        clf = GridSearchCV(SVC(C=1, probability=True), param_grid, cv=5)
-    elif classifier == 'GMM':  # Doesn't work best
-        clf = GMM(n_components=nClasses)
+    global clf
 
-    # ref:
-    # http://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html#example-classification-plot-classifier-comparison-py
-    elif classifier == 'RadialSvm':  # Radial Basis Function kernel
-        # works better with C = 1 and gamma = 2
-        clf = SVC(C=1, kernel='rbf', probability=True, gamma=2)
-    elif classifier == 'DecisionTree':  # Doesn't work best
-        clf = DecisionTreeClassifier(max_depth=20)
-    elif classifier == 'GaussianNB':
-        clf = GaussianNB()
-
-    # ref: https://jessesw.com/Deep-Learning/
-    elif classifier == 'DBN':
-        from nolearn.dbn import DBN
-        clf = DBN(
-            [embeddings.shape[1], 500, labelsNum[-1:][0] + 1],  # i/p nodes, hidden nodes, o/p nodes
-            learn_rates=0.3,
-            # Smaller steps mean a possibly more accurate result, but the
-            # training will take longer
-            learn_rate_decays=0.9,
-            # a factor the initial learning rate will be multiplied by
-            # after each iteration of the training
-            epochs=300,  # no of iternation
-            # dropouts = 0.25, # Express the percentage of nodes that
-            # will be randomly dropped as a decimal.
-            verbose=1
-        )
-
-        if ldaDim > 0:
-            clf_final = clf
-            clf = Pipeline(
-                [
-                    ('lda', LDA(n_components=ldaDim)),
-                    ('clf', clf_final)
-                ]
-        )
+    clf = GridSearchCV(SVC(C=1, probability=True), param_grid, cv=5)
 
     return clf.fit(X, y)
+
+def updateRecognizer():
+    persons = FaceProcessor.getPersons()
+    if len(persons) <= 1:
+        return;
+
+    global le, clf
+    le = LabelEncoder().fit(
+        list(persons.keys())
+    )
+    clf = train()
+
+def recognize(npImg):
+    if clf is None:
+        return None
+
+    if npImg is None:
+        return None
+
+    npImg = comm.scaledImg(npImg)
+    box = align.getLargestFaceBoundingBox(npImg)
+    if box is None:
+        return None
+
+    persons = FaceProcessor.getPersons()
+
+    alignedFace = align.align(96, npImg, box,
+        landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
+    rep = net.forward(alignedFace)
+    rep1 = rep.reshape(1, -1)
+    predictions = clf.predict_proba(rep).ravel()
+    maxI = np.argmax(predictions)
+    confidence = predictions[maxI]
+
+    identity = le.inverse_transform(maxI)
+    name = persons[identity]
+    print(name, confidence)
+
+    if confidence < 0.7:
+        identity, name = -1, 'unknown'
+
+    msg = {
+        'identity': identity,
+        'name': name,
+        'confidence': confidence,
+        'box': box
+    }
+    return msg
 
 def faceRecognize():
     if clf is None:
@@ -121,14 +134,14 @@ def callback(rosData):
     npArr = np.fromstring(rosData.data, np.uint8)
     npImg = cv2.imdecode(npArr, cv2.CV_LOAD_IMAGE_COLOR)
 
-    bb = align.getLargestFaceBoundingBox(npImg)
-    if bb is None:
+    box = align.getLargestFaceBoundingBox(npImg)
+    if box is None:
         print 'cannot find a face on frame {}'.format(rosData.header.frame_id)
         cv2.imshow('Face', npImg)
         cv2.waitKey(1000 // fps)
         return
 
-    alignedFace = align.align(96, npImg, bb,
+    alignedFace = align.align(96, npImg, box,
         landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
     rep = net.forward(alignedFace)
     rep1 = rep.reshape(1, -1)
@@ -142,15 +155,15 @@ def callback(rosData):
 
     #identity = svm.predict(rep)[0]
 
-    p1 = (bb.left(), bb.top())
-    p2 = (bb.right(), bb.bottom())
+    p1 = (box.left(), box.top())
+    p2 = (box.right(), box.bottom())
     cv2.rectangle(npImg, p1, p2, (0, 255, 0), 3)
 #    for p in openface.AlignDlib.OUTER_EYES_AND_NOSE:
 #        cv2.circle(npImg, center=landmarks[p], radius=3, color=(0, 255, 0), thickness=-1)
     cv2.putText(
         npImg,
         str(identity) + ':' + name,
-        (bb.left(), bb.top() - 10),
+        (box.left(), box.top() - 10),
         cv2.FONT_HERSHEY_SIMPLEX,
         fontScale=0.75,
         color=(0, 255, 0),
@@ -160,29 +173,6 @@ def callback(rosData):
     print 'you\'re most likely {} on frame {} with confidence {:.2f}'.format(
         name, rosData.header.frame_id, confidence)
     cv2.waitKey(1000 // fps)
-
-warnings.filterwarnings("ignore")
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--pklpath', type=str, default='/home/anchore/faces.pkl')
-parser.add_argument(
-    '--classifier',
-    type=str,
-    choices=['LinearSvm', 'GridSearchSvm', 'GMM', 'RadialSvm', 'DecisionTree', 'GaussianNB', 'DBN'],
-    help='The type of classifier to use.',
-    default='GridSearchSvm'
-)
-parser.add_argument('--ldaDim', type=int, default=-1)
-args = parser.parse_args()
-
-align = comm.align
-net = comm.net
-
-pklpath = args.pklpath
-classifier = args.classifier
-ldaDim = args.ldaDim
-
-le, clf = None, None
 
 if __name__ == '__main__':
     fps = comm.FPS
