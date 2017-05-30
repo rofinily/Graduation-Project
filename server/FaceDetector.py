@@ -44,7 +44,7 @@ def callback(rosData):
 
 def getAllFaceBoxes(npImg, detector='dlib'):
     if detector == 'dlib':
-        return align.getAllFaceBoundingBoxes(npImg)
+        return comm.align.getAllFaceBoundingBoxes(npImg)
 #    elif detector == 'opencv':
 #        pass
     else:

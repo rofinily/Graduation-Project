@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-import cv2, numpy as np, base64, imagehash, pickle
-from PIL import Image
-import openface
+import base64
 import comm, FaceDetector, FaceProcessor, FaceRecognizer
 
 MSG = {

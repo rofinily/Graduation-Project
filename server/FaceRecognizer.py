@@ -7,7 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import SVC
 from sklearn.grid_search import GridSearchCV
 import openface
-import comm
+import comm, FaceProcessor
 
 warnings.filterwarnings("ignore")
 
@@ -22,17 +22,7 @@ pklpath = args.pklpath
 
 le, clf = None, None
 
-def getImages(path):
-    with open(path, 'rb') as f:
-        pickle.load(f)
-        imgs = pickle.load(f)
-        if imgs is None:
-            print 'cannot load file: {}'.format(path)
-            return None
-        return imgs
-
-def getData():
-    imgs = getImages(pklpath)
+def getData(imgs):
     if imgs is None:
         return None
     X = []
@@ -48,8 +38,7 @@ def getData():
     y = np.array(y)
     return (X, y)
 
-def train():
-    d = getData()
+def train(d):
     if d is None:
         return None
 
@@ -67,35 +56,35 @@ def train():
     ]
 
     global clf
-
     clf = GridSearchCV(SVC(C=1, probability=True), param_grid, cv=5)
 
     return clf.fit(X, y)
 
 def updateRecognizer():
-    persons = FaceProcessor.getPersons()
+    persons = FaceProcessor.persons
+    imgs = FaceProcessor.images
+
     if len(persons) <= 1:
-        return;
+        print('recognizer works with at least two trained faces')
+        return
 
     global le, clf
     le = LabelEncoder().fit(
         list(persons.keys())
     )
-    clf = train()
+    clf = train(getData(imgs))
 
 def recognize(npImg):
-    if clf is None:
+    if npImg is None:
         return None
 
-    if npImg is None:
+    if clf is None:
         return None
 
     npImg = comm.scaledImg(npImg)
     box = align.getLargestFaceBoundingBox(npImg)
     if box is None:
         return None
-
-    persons = FaceProcessor.getPersons()
 
     alignedFace = align.align(96, npImg, box,
         landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
@@ -106,7 +95,7 @@ def recognize(npImg):
     confidence = predictions[maxI]
 
     identity = le.inverse_transform(maxI)
-    name = persons[identity]
+    name = FaceProcessor.persons[identity]
     print(name, confidence)
 
     if confidence < 0.7:

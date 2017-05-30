@@ -48,7 +48,9 @@ def callback(rosData):
 
     alignedFace = align.align(96, npImg, box,
         landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
-    phash = imagehash.phash(Image.fromarray(alignedFace))
+    phash = str(
+        imagehash.phash(Image.fromarray(alignedFace))
+    )
     if phash not in images:
         rep = net.forward(alignedFace)
         images[phash] = {
@@ -83,19 +85,21 @@ def train(identity, name, npImg):
     if npImg is None:
         return None
 
-    if identity not in persons:
-        persons[identity] = name
-    elif persons[identity] != name:
-        persons[identity] = name
-
     npImg = comm.scaledImg(npImg)
     box = align.getLargestFaceBoundingBox(npImg)
     if box is None:
         return None
 
+    if identity not in persons:
+        persons[identity] = name
+    elif persons[identity] != name:
+        persons[identity] = name
+
     alignedFace = align.align(96, npImg, box,
         landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
-    phash = imagehash.phash(Image.fromarray(alignedFace))
+    phash = str(
+        imagehash.phash(Image.fromarray(alignedFace))
+    )
     if phash not in images:
         rep = net.forward(alignedFace)
         images[phash] = {

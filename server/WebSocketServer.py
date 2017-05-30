@@ -96,7 +96,7 @@ class MyServerProtocol(WebSocketServerProtocol):
             pass
 
     def onClose(self, wasClean, code, reason):
-        print('WebSocket connection closed: {0}'.format(reason))
+        print('WebSocket connection closed: {}'.format(reason))
 
 if __name__ == '__main__':
     try:
